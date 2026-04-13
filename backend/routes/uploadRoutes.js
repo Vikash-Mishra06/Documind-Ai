@@ -2,7 +2,8 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const pdfParse = require("pdf-parse/lib/pdf-parse")
+const pdfParse = require("pdf-parse/lib/pdf-parse");
+const chunkText = require("../utils/chunkText");
 
 const router = express.Router();
 
@@ -31,12 +32,13 @@ router.post("/", upload.single("file"), async (req, res) => {
 
     const extractedText = pdfData.text;
 
+    const chunks = chunkText(extractedText);
+
     res.json({
       message: "PDF processed successfully",
-      textLength: extractedText.length,
-      preview: extractedText.substring(0, 300),
+      totalChunks: chunks.length,
+      sampleChunk: chunks[0],
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error processing PDF" });
