@@ -1,6 +1,7 @@
 const express = require("express");
 const { generateEmbedding } = require("../services/embeddingService");
 const { getVectors } = require("../db/vectorStore");
+const { generateAnswer } = require("../services/llmService");
 
 const router = express.Router();
 
@@ -26,11 +27,19 @@ router.post("/", async (req, res) => {
   try {
     const { query } = req.body;
 
+    if (!query) {
+      return res.status(400).json({ error: "Query is required" });
+    }
+
     // generate embedding for query
     const queryEmbedding = await generateEmbedding(query);
 
     // get stored vectors
     const vectors = getVectors();
+
+    if (!vectors.length) {
+      return res.status(400).json({ error: "No documents indexed yet" });
+    }
 
     // calculate similarity
     const results = vectors.map((item) => {
@@ -48,9 +57,16 @@ router.post("/", async (req, res) => {
     // top 3 results
     const topResults = results.slice(0, 3);
 
+    // combine context
+    const context = topResults.map((r) => r.text).join("\n");
+
+    // generate AI answer
+    const answer = await generateAnswer(query, context);
+
     res.json({
       query,
-      results: topResults,
+      answer,
+      contextUsed: topResults,
     });
 
   } catch (error) {
