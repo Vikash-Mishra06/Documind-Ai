@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const pdfParse = require("pdf-parse/lib/pdf-parse");
 const chunkText = require("../utils/chunkText");
+const { generateEmbedding } = require("../services/embeddingService");
 
 const router = express.Router();
 
@@ -34,10 +35,13 @@ router.post("/", upload.single("file"), async (req, res) => {
 
     const chunks = chunkText(extractedText);
 
+    // generate embedding for first chunk (test)
+    const embedding = await generateEmbedding(chunks[0]);
+
     res.json({
       message: "PDF processed successfully",
       totalChunks: chunks.length,
-      sampleChunk: chunks[0],
+      embeddingLength: embedding.length,
     });
   } catch (error) {
     console.error(error);
