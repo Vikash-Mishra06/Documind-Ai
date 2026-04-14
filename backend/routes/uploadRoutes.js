@@ -5,6 +5,7 @@ const fs = require("fs");
 const pdfParse = require("pdf-parse/lib/pdf-parse");
 const chunkText = require("../utils/chunkText");
 const { generateEmbedding } = require("../services/embeddingService");
+const { saveVectors } = require("../db/vectorStore");
 
 const router = express.Router();
 
@@ -36,12 +37,23 @@ router.post("/", upload.single("file"), async (req, res) => {
     const chunks = chunkText(extractedText);
 
     // generate embedding for first chunk (test)
-    const embedding = await generateEmbedding(chunks[0]);
+    const vectorData = [];
+
+    for (let chunk of chunks) {
+      const embedding = await generateEmbedding(chunk);
+
+      vectorData.push({
+        text: chunk,
+        embedding,
+      });
+    }
+
+    // save to DB
+    saveVectors(vectorData);
 
     res.json({
-      message: "PDF processed successfully",
+      message: "Embeddings stored successfully",
       totalChunks: chunks.length,
-      embeddingLength: embedding.length,
     });
   } catch (error) {
     console.error(error);
