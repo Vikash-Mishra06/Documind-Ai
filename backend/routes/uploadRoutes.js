@@ -6,6 +6,7 @@ const pdfParse = require("pdf-parse/lib/pdf-parse");
 const chunkText = require("../utils/chunkText");
 const { generateEmbedding } = require("../services/embeddingService");
 const { saveVectors } = require("../db/vectorStore");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // route
-router.post("/", upload.single("file"), async (req, res) => {
+router.post("/", authMiddleware, upload.single("file"), async (req, res) => {
   try {
     const filePath = req.file.path;
 

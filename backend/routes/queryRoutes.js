@@ -2,6 +2,7 @@ const express = require("express");
 const { generateEmbedding } = require("../services/embeddingService");
 const { getVectors } = require("../db/vectorStore");
 const { generateAnswer } = require("../services/llmService");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ function cosineSimilarity(a, b) {
   return dot / (magA * magB);
 }
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   try {
     const { query } = req.body;
 
