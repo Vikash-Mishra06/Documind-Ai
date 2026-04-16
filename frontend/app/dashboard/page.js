@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [file, setFile] = useState(null);
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const [documents, setDocuments] = useState([]);
 
   // 🔐 Protect route
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function Dashboard() {
       router.push("/login");
     } else {
       setToken(savedToken);
+      fetchDocuments();
     }
   }, []);
 
@@ -49,6 +51,8 @@ export default function Dashboard() {
     setLoading(false);
 
     alert(data.message);
+
+    await fetchDocuments();
   };
 
   // 💬 Ask question
@@ -79,9 +83,19 @@ export default function Dashboard() {
     setLoading(false);
   };
 
+  const fetchDocuments = async () => {
+    const res = await fetch("http://localhost:5000/api/documents", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+    setDocuments(data.documents || []);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 flex flex-col items-center">
-      
       {/* HEADER */}
       <div className="w-full max-w-4xl flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">DocuMind AI Dashboard</h1>
@@ -97,10 +111,7 @@ export default function Dashboard() {
       <div className="w-full max-w-4xl bg-gray-800 p-4 rounded mb-6">
         <h2 className="text-lg mb-3">Upload Document</h2>
         <div className="flex gap-3 items-center">
-          <input
-            type="file"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
+          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
           <button
             onClick={handleUpload}
             className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
@@ -108,6 +119,23 @@ export default function Dashboard() {
             {loading ? "Uploading..." : "Upload"}
           </button>
         </div>
+      </div>
+
+      {/* DOCUMENT LIST */}
+      <div className="w-full max-w-4xl bg-gray-800 p-4 rounded mb-6">
+        <h2 className="text-lg mb-3">Your Documents</h2>
+
+        {documents.length === 0 ? (
+          <p className="text-gray-400">No documents uploaded yet</p>
+        ) : (
+          <ul className="space-y-2 max-h-40 overflow-y-auto">
+            {documents.map((doc, i) => (
+              <li key={i} className="bg-gray-700 p-2 rounded text-sm">
+                📄 {doc.fileName}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* CHAT SECTION */}
@@ -131,9 +159,7 @@ export default function Dashboard() {
           </div>
         ))}
 
-        {loading && (
-          <div className="text-gray-400 text-sm">Thinking...</div>
-        )}
+        {loading && <div className="text-gray-400 text-sm">Thinking...</div>}
       </div>
 
       {/* INPUT */}

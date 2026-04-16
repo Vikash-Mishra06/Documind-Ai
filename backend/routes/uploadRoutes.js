@@ -56,6 +56,7 @@ router.post("/", authMiddleware, upload.single("file"), async (req, res) => {
 
       await Document.create({
         userId: req.user.userId,
+        fileName: req.file.originalname,
         text: chunk,
         embedding,
       });

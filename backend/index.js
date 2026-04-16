@@ -5,6 +5,7 @@ const uploadRoutes = require("./routes/uploadRoutes");
 const queryRoutes = require("./routes/queryRoutes");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const documentRoutes = require("./routes/documentRoutes");
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use("/api/upload", uploadRoutes);
 app.use("/api/query", queryRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/documents", documentRoutes);
 
 app.get("/", (req, res) => {
   res.send("DocuMind AI Backend Running 🚀");
