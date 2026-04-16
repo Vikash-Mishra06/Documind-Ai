@@ -7,6 +7,7 @@ const chunkText = require("../utils/chunkText");
 const { generateEmbedding } = require("../services/embeddingService");
 const { saveVectors } = require("../db/vectorStore");
 const authMiddleware = require("../middleware/authMiddleware");
+const Document = require("../models/Document");
 
 const router = express.Router();
 
@@ -50,7 +51,15 @@ router.post("/", authMiddleware, upload.single("file"), async (req, res) => {
     }
 
     // save to DB
-    saveVectors(vectorData);
+    for (let chunk of chunks) {
+      const embedding = await generateEmbedding(chunk);
+
+      await Document.create({
+        userId: req.user.userId,
+        text: chunk,
+        embedding,
+      });
+    }
 
     res.json({
       message: "Embeddings stored successfully",

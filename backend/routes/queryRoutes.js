@@ -3,6 +3,7 @@ const { generateEmbedding } = require("../services/embeddingService");
 const { getVectors } = require("../db/vectorStore");
 const { generateAnswer } = require("../services/llmService");
 const authMiddleware = require("../middleware/authMiddleware");
+const Document = require("../models/Document");
 
 const router = express.Router();
 
@@ -36,7 +37,9 @@ router.post("/", authMiddleware, async (req, res) => {
     const queryEmbedding = await generateEmbedding(query);
 
     // get stored vectors
-    const vectors = getVectors();
+    const vectors = await Document.find({
+      userId: req.user.userId,
+    });
 
     if (!vectors.length) {
       return res.status(400).json({ error: "No documents indexed yet" });
@@ -69,7 +72,6 @@ router.post("/", authMiddleware, async (req, res) => {
       answer,
       contextUsed: topResults,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Search failed" });

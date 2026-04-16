@@ -9,14 +9,23 @@ async function generateAnswer(query, context) {
         messages: [
           {
             role: "system",
-            content:
-              "You are a helpful assistant. Answer based only on the provided context.",
+            content: `
+You are an intelligent assistant.
+
+Instructions:
+- Answer ONLY using the provided context
+- Give a clear, detailed, and structured answer
+- If the answer is not in the context, say "I don't have enough information"
+- Do not make assumptions
+            `,
           },
           {
             role: "user",
             content: `Context:\n${context}\n\nQuestion:\n${query}`,
           },
         ],
+        temperature: 0.3,
+        max_tokens: 300,
       },
       {
         headers: {
