@@ -1,9 +1,9 @@
 const express = require("express");
 const { generateEmbedding } = require("../services/embeddingService");
-const { getVectors } = require("../db/vectorStore");
 const { generateAnswer } = require("../services/llmService");
 const authMiddleware = require("../middleware/authMiddleware");
 const Document = require("../models/Document");
+const redisClient = require("../config/redis");
 
 const router = express.Router();
 
@@ -27,51 +27,63 @@ function cosineSimilarity(a, b) {
 
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { query } = req.body;
+    // normalize query
+    const rawQuery = req.body.query;
+    const query = rawQuery.trim().toLowerCase();
+    const userId = req.user.userId;
 
-    if (!query) {
-      return res.status(400).json({ error: "Query is required" });
+    const cacheKey = `${userId}:${query}`;
+    console.log("Cache Key:", cacheKey);
+
+    // CACHE READ
+    let cached = null;
+
+    try {
+      cached = await redisClient.get(cacheKey);
+    } catch (err) {
+      console.log("Redis read failed");
     }
 
-    // generate embedding for query
+    if (cached) {
+      console.log("CACHE HIT");
+      return res.json(JSON.parse(cached));
+    }
+
+    console.log("CACHE MISS");
+
     const queryEmbedding = await generateEmbedding(query);
 
-    // get stored vectors
-    const vectors = await Document.find({
-      userId: req.user.userId,
-    });
+    const vectors = await Document.find({ userId });
 
-    if (!vectors.length) {
-      return res.status(400).json({ error: "No documents indexed yet" });
-    }
-
-    // calculate similarity
     const results = vectors.map((item) => {
       const score = cosineSimilarity(queryEmbedding, item.embedding);
-
-      return {
-        text: item.text,
-        score,
-      };
+      return { text: item.text, score };
     });
 
-    // sort by highest score
     results.sort((a, b) => b.score - a.score);
 
-    // top 3 results
     const topResults = results.slice(0, 3);
 
-    // combine context
     const context = topResults.map((r) => r.text).join("\n");
 
-    // generate AI answer
     const answer = await generateAnswer(query, context);
 
-    res.json({
+    const response = {
       query,
       answer,
       contextUsed: topResults,
-    });
+    };
+
+    // 🔥 CACHE STORE
+    try {
+      await redisClient.setEx(cacheKey, 600, JSON.stringify(response));
+      console.log("Stored in cache");
+    } catch (err) {
+      console.log("Redis write failed");
+    }
+
+    res.json(response);
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Search failed" });

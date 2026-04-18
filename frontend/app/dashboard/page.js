@@ -20,7 +20,7 @@ export default function Dashboard() {
       router.push("/login");
     } else {
       setToken(savedToken);
-      fetchDocuments();
+      fetchDocuments(savedToken);
     }
   }, []);
 
@@ -52,7 +52,7 @@ export default function Dashboard() {
 
     alert(data.message);
 
-    await fetchDocuments();
+    await fetchDocuments(token);
   };
 
   // 💬 Ask question
@@ -83,10 +83,10 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = async (authToken) => {
     const res = await fetch("http://localhost:5000/api/documents", {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${authToken}`,
       },
     });
 
