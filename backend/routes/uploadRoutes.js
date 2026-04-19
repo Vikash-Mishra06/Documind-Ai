@@ -27,48 +27,58 @@ const upload = multer({ storage });
 router.post("/", authMiddleware, upload.single("file"), async (req, res) => {
   try {
     const filePath = req.file.path;
+    console.log(`Processing file: ${req.file.originalname} for user: ${req.user.userId}`);
 
     // read file
     const dataBuffer = fs.readFileSync(filePath);
 
     // extract text
     const pdfData = await pdfParse(dataBuffer);
+    const extractedText = pdfData.text.trim();
 
-    const extractedText = pdfData.text;
-
-    const chunks = chunkText(extractedText);
-
-    // generate embedding for first chunk (test)
-    const vectorData = [];
-
-    for (let chunk of chunks) {
-      const embedding = await generateEmbedding(chunk);
-
-      vectorData.push({
-        text: chunk,
-        embedding,
-      });
+    if (!extractedText) {
+      throw new Error("No text extracted from PDF");
     }
 
-    // save to DB
-    for (let chunk of chunks) {
+    console.log(`Extracted ${extractedText.length} chars`);
+
+    const chunks = chunkText(extractedText);
+    console.log(`Created ${chunks.length} chunks, avg length: ${chunks.reduce((a,b)=>a+b.length,0)/chunks.length |0}`);
+
+    // Filter empty chunks
+    const validChunks = chunks.filter(chunk => chunk.trim().length > 10);
+
+    if (validChunks.length === 0) {
+      throw new Error("No valid chunks after processing");
+    }
+
+    // Generate embeddings ONCE and save
+    const savedChunks = [];
+    for (let i = 0; i < validChunks.length; i++) {
+      const chunk = validChunks[i];
+      console.log(`Generating embedding ${i+1}/${validChunks.length}`);
+      
       const embedding = await generateEmbedding(chunk);
 
-      await Document.create({
+      const doc = await Document.create({
         userId: req.user.userId,
         fileName: req.file.originalname,
         text: chunk,
         embedding,
       });
+      savedChunks.push(doc);
     }
 
+    console.log(`Successfully saved ${savedChunks.length} chunks to DB`);
+
     res.json({
-      message: "Embeddings stored successfully",
-      totalChunks: chunks.length,
+      message: "Document processed and embeddings stored successfully",
+      totalChunks: savedChunks.length,
+      fileName: req.file.originalname
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error processing PDF" });
+    console.error("Upload error:", error);
+    res.status(500).json({ error: error.message || "Error processing PDF" });
   }
 });
 

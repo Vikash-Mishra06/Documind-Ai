@@ -49,11 +49,22 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.json(JSON.parse(cached));
     }
 
-    console.log("CACHE MISS");
+    console.log("CACHE MISS - Query:", query);
 
     const queryEmbedding = await generateEmbedding(query);
+    console.log("Query embedding generated, dim:", queryEmbedding.length);
 
-    const vectors = await Document.find({ userId });
+    // Limit to recent 100 docs for performance
+    const vectors = await Document.find({ userId }).sort({ createdAt: -1 }).limit(100);
+    console.log(`Found ${vectors.length} user documents`);
+
+    if (vectors.length === 0) {
+      return res.json({
+        query,
+        answer: "No documents uploaded yet. Please upload a PDF first.",
+        contextUsed: []
+      });
+    }
 
     const results = vectors.map((item) => {
       const score = cosineSimilarity(queryEmbedding, item.embedding);
@@ -62,9 +73,17 @@ router.post("/", authMiddleware, async (req, res) => {
 
     results.sort((a, b) => b.score - a.score);
 
-    const topResults = results.slice(0, 3);
+    console.log("Top 3 scores:", results.slice(0,3).map(r => r.score.toFixed(3)));
 
-    const context = topResults.map((r) => r.text).join("\n");
+    // Filter by threshold 0.3
+    const relevantResults = results.filter(r => r.score > 0.3);
+    const topResults = relevantResults.slice(0, 3);
+
+    console.log(`Relevant chunks >0.3: ${relevantResults.length}, using top ${topResults.length}`);
+
+    const context = topResults.map((r) => r.text).join("\n\n---\n\n");
+
+    console.log("Context preview:", context.slice(0,200) + (context.length > 200 ? "..." : ""));
 
     const answer = await generateAnswer(query, context);
 
