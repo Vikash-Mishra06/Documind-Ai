@@ -42,7 +42,7 @@ export default function Dashboard() {
 
   const fetchDocuments = async (authToken) => {
     try {
-      const res = await fetch("https://documind-ai-klfw.onrender.com/api/documents", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
@@ -60,7 +60,7 @@ export default function Dashboard() {
     toast.loading("Processing document...");
 
     try {
-      const res = await fetch("https://documind-ai-klfw.onrender.com/api/upload", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -97,7 +97,7 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
-      const res = await fetch("https://documind-ai-klfw.onrender.com/api/query", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/query`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
