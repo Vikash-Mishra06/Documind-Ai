@@ -13,7 +13,7 @@ const app = express();
 app.use(cors());
 
 app.use(cors({
-  origin: "*"
+  origin: "https://documind-ai-beta.vercel.app"
 }));
 
 app.use(express.json());
