@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://documind-ai-klfw.onrender.com";
+
 export default function Dashboard() {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -42,7 +44,7 @@ export default function Dashboard() {
 
   const fetchDocuments = async (authToken) => {
     try {
-      const res = await fetch("https://documind-ai-klfw.onrender.com/api/documents", {
+      const res = await fetch(`${API_BASE_URL}/api/documents`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
@@ -60,7 +62,7 @@ export default function Dashboard() {
     toast.loading("Processing document...");
 
     try {
-      const res = await fetch("https://documind-ai-klfw.onrender.com/api/upload", {
+      const res = await fetch(`${API_BASE_URL}/api/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -97,7 +99,7 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
-      const res = await fetch("https://documind-ai-klfw.onrender.com/api/query", {
+      const res = await fetch(`${API_BASE_URL}/api/query`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

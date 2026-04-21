@@ -5,6 +5,8 @@ import { Sparkles, Loader2, ArrowRight, UserPlus, ShieldCheck } from "lucide-rea
 import Link from "next/link";
 import { motion } from "framer-motion";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://documind-ai-klfw.onrender.com";
+
 export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,7 +19,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const res = await fetch("https://documind-ai-klfw.onrender.com/api/auth/signup", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
