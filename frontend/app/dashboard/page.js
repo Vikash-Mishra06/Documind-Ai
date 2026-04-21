@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { 
-  LayoutDashboard, FileText, MessageSquare, 
+  LayoutDashboard, FileText, MessageSquare, Menu, X,
   LogOut, Upload, Send, Bot, User, 
   Loader2, Plus, Sparkles, Trash2 
 } from "lucide-react";
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState([]);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -119,9 +120,72 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-[#09090b] text-zinc-100 overflow-hidden">
-      {/* --- SIDEBAR --- */}
-      <aside className="w-64 border-r border-zinc-800 flex flex-col bg-[#09090b] z-20">
+    <div className="flex h-[100svh] min-h-screen bg-[#09090b] text-zinc-100 overflow-hidden">
+      {/* --- Mobile Sidebar Overlay --- */}
+      <AnimatePresence>
+        {isMobileSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="fixed inset-0 z-30 lg:hidden bg-black/50 backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* --- Mobile Sidebar --- */}
+      <motion.aside 
+        initial={false}
+        animate={{ x: isMobileSidebarOpen ? 0 : "-100%" }}
+        className="fixed top-0 left-0 z-40 w-72 sm:w-80 h-[100svh] border-r border-zinc-800 flex flex-col bg-[#09090b] shadow-2xl lg:hidden"
+        transition={{ type: "spring", damping: 30 }}
+      >
+        <div className="p-4 sm:p-6 flex items-center justify-between border-b border-zinc-700/50">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-600 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+              <Sparkles className="size-5 sm:size-[20px] text-white" />
+            </div>
+            <span className="text-lg sm:text-xl font-bold tracking-tight truncate">DocuMind</span>
+          </div>
+          <button 
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 transition-all flex-shrink-0 lg:hidden"
+            aria-label="Close menu"
+          >
+            <X className="size-5 sm:size-6" />
+          </button>
+        </div>
+
+        <nav className="flex-1 px-3 sm:px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
+          <NavItem icon={<LayoutDashboard className="size-4 sm:size-4.5 flex-shrink-0" />} label="Overview" active />
+          <div className="pt-4 pb-2 px-3 sm:px-4 text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Documents</div>
+          <div className="space-y-1 max-h-[250px] overflow-y-auto custom-scrollbar px-1 sm:px-2">
+            {documents.map((doc, i) => (
+              <div key={i} className="flex items-center gap-2 p-2 text-xs sm:text-sm text-zinc-400 hover:bg-zinc-800/50 rounded-lg group cursor-pointer">
+                <FileText className="size-3.5 sm:size-3.5 flex-shrink-0" />
+                <span className="truncate">{doc.fileName}</span>
+              </div>
+            ))}
+          </div>
+        </nav>
+
+        <div className="p-3 sm:p-4 border-t border-zinc-800">
+          <button 
+            onClick={() => {
+              handleLogout();
+              setIsMobileSidebarOpen(false);
+            }} 
+            className="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 w-full text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all text-xs sm:text-sm"
+          >
+            <LogOut className="size-4 sm:size-4.5 flex-shrink-0" />
+            <span className="font-medium">Sign Out</span>
+          </button>
+        </div>
+      </motion.aside>
+
+      {/* --- Desktop Sidebar --- */}
+      <aside className="hidden lg:flex w-64 border-r border-zinc-800 flex flex-col bg-[#09090b] z-20">
         <div className="p-6 flex items-center gap-3">
           <div className="bg-indigo-600 p-2 rounded-lg">
             <Sparkles size={20} className="text-white" />
@@ -151,21 +215,32 @@ export default function Dashboard() {
       </aside>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/50 via-[#09090b] to-[#09090b]">
+      <main className="flex-1 flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/50 via-[#09090b] to-[#09090b]">
         {/* Top Header */}
-        <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-8 bg-[#09090b]/50 backdrop-blur-md">
-          <h2 className="text-sm font-medium text-zinc-400">Knowledge Base / <span className="text-zinc-100">AI Assistant</span></h2>
-          <div className="flex items-center gap-4">
-            <label className="cursor-pointer flex items-center gap-2 bg-zinc-100 text-black px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-300 transition-colors">
-              <Plus size={14} />
-              {loading ? "Processing..." : "New Document"}
-              <input type="file" className="hidden" onChange={handleUpload} disabled={loading} />
+        <header className="h-14 sm:h-16 border-b border-zinc-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-[#09090b]/50 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 transition-all flex-shrink-0"
+            >
+              <Menu className="size-5 sm:size-6" />
+            </button>
+            <h2 className="hidden sm:block text-sm font-medium text-zinc-400 truncate max-w-[200px] sm:max-w-[300px]">
+              Knowledge Base / <span className="text-zinc-100">AI Assistant</span>
+            </h2>
+            <span className="sm:hidden text-xs font-semibold text-zinc-300">AI Chat</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer flex items-center gap-1.5 bg-zinc-100 text-black px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-300 transition-colors">
+              <Plus className="size-3.5 sm:size-3.5 flex-shrink-0" />
+              {loading ? "Proc..." : "New Doc"}
+              <input type="file" className="hidden" onChange={handleUpload} disabled={loading} accept=".pdf" />
             </label>
           </div>
         </header>
 
         {/* Chat Window */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar pb-32">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 custom-scrollbar">
 {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
               <div className="w-20 h-20 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-2xl flex items-center justify-center border-2 border-indigo-500/30 shadow-2xl">
@@ -226,8 +301,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Floating Input */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent">
+        {/* Input Bar */}
+        <div className="flex-shrink-0 p-3 sm:p-4 md:p-6 border-t border-zinc-800 bg-gradient-to-t from-[#09090b] via-[#09090b]/95 to-[#09090b]/80">
           <div className="max-w-3xl mx-auto relative group">
             <input
               className="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl py-4 pl-6 pr-16 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition-all shadow-2xl"
