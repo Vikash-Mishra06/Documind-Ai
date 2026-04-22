@@ -19,15 +19,11 @@ function cosineSimilarity(a, b) {
     magB += b[i] * b[i];
   }
 
-  magA = Math.sqrt(magA);
-  magB = Math.sqrt(magB);
-
-  return dot / (magA * magB);
+  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
 }
 
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    // normalize query
     const rawQuery = req.body.query;
     const query = rawQuery.trim().toLowerCase();
     const userId = req.user.userId;
@@ -36,54 +32,48 @@ router.post("/", authMiddleware, async (req, res) => {
     console.log("Cache Key:", cacheKey);
 
     // CACHE READ
-    let cached = null;
-
     try {
-      cached = await redisClient.get(cacheKey);
-    } catch (err) {
-      console.log("Redis read failed");
-    }
+      const cached = await redisClient.get(cacheKey);
+      if (cached) {
+        console.log("CACHE HIT ⚡");
+        return res.json(JSON.parse(cached));
+      }
+    } catch {}
 
-    if (cached) {
-      console.log("CACHE HIT");
-      return res.json(JSON.parse(cached));
-    }
-
-    console.log("CACHE MISS - Query:", query);
+    console.log("CACHE MISS ❌");
 
     const queryEmbedding = await generateEmbedding(query);
-    console.log("Query embedding generated, dim:", queryEmbedding.length);
 
-    // Limit to recent 100 docs for performance
-    const vectors = await Document.find({ userId }).sort({ createdAt: -1 }).limit(100);
-    console.log(`Found ${vectors.length} user documents`);
+    const vectors = await Document.find({ userId });
 
     if (vectors.length === 0) {
       return res.json({
         query,
-        answer: "No documents uploaded yet. Please upload a PDF first.",
-        contextUsed: []
+        answer: "No documents uploaded yet.",
+        contextUsed: [],
       });
     }
 
+    // calculate similarity
     const results = vectors.map((item) => {
       const score = cosineSimilarity(queryEmbedding, item.embedding);
       return { text: item.text, score };
     });
 
+    // sort by similarity
     results.sort((a, b) => b.score - a.score);
 
-    console.log("Top 3 scores:", results.slice(0,3).map(r => r.score.toFixed(3)));
+    // 🔥 IMPORTANT FIXES
+    const topResults = results.slice(0, 6); // increase from 3 → 6
 
-    // Filter by threshold 0.3
-    const relevantResults = results.filter(r => r.score > 0.3);
-    const topResults = relevantResults.slice(0, 3);
+    console.log("Top scores:", topResults.map(r => r.score.toFixed(3)));
 
-    console.log(`Relevant chunks >0.3: ${relevantResults.length}, using top ${topResults.length}`);
+    // better context
+    const context = topResults
+      .map((r) => r.text)
+      .join("\n\n");
 
-    const context = topResults.map((r) => r.text).join("\n\n---\n\n");
-
-    console.log("Context preview:", context.slice(0,200) + (context.length > 200 ? "..." : ""));
+    console.log("Context length:", context.length);
 
     const answer = await generateAnswer(query, context);
 
@@ -93,13 +83,11 @@ router.post("/", authMiddleware, async (req, res) => {
       contextUsed: topResults,
     };
 
-    // 🔥 CACHE STORE
+    // CACHE STORE
     try {
       await redisClient.setEx(cacheKey, 600, JSON.stringify(response));
-      console.log("Stored in cache");
-    } catch (err) {
-      console.log("Redis write failed");
-    }
+      console.log("Stored in cache ✅");
+    } catch {}
 
     res.json(response);
 

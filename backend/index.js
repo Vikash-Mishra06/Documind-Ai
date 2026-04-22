@@ -13,6 +13,7 @@ const app = express();
 const defaultAllowedOrigins = [
   "https://documind-ai-beta.vercel.app",
   "https://documind-ai-lime.vercel.app",
+  "http://localhost:3000"
 ];
 
 const envAllowedOrigins = (process.env.FRONTEND_URLS || "")

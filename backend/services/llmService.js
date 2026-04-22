@@ -10,29 +10,37 @@ async function generateAnswer(query, context) {
           {
             role: "system",
             content: `
-You are an intelligent assistant.
+You are an AI assistant that answers questions from documents.
 
-Instructions:
-- Answer ONLY using the provided context
-- Give a clear, detailed, and structured answer
-- If the answer is not in the context, say "I don't have enough information"
-- Do not make assumptions
+STRICT RULES:
+- Use ONLY the provided context
+- Combine information from multiple parts if needed
+- Extract complete information carefully
+- Do NOT say "I don't know" if answer is present anywhere in context
+- Give clear, direct answers
+- Be specific (list skills, education, experience clearly)
             `,
           },
           {
             role: "user",
-            content: `Context:\n${context}\n\nQuestion:\n${query}`,
+            content: `
+Context:
+${context}
+
+Question:
+${query}
+            `,
           },
         ],
-        temperature: 0.3,
-        max_tokens: 300,
+        temperature: 0.2,
+        max_tokens: 400,
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     return response.data.choices[0].message.content;
