@@ -25,22 +25,28 @@ function cosineSimilarity(a, b) {
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const rawQuery = req.body.query;
-    const query = rawQuery.trim().toLowerCase();
-    const userId = req.user.userId;
 
+    // 🔥 smarter query rewrite
+    let query = rawQuery.trim().toLowerCase();
+    if (query.length < 20) {
+      query = `Explain clearly from the document: ${query}`;
+    }
+
+    const userId = req.user.userId;
     const cacheKey = `${userId}:${query}`;
-    console.log("Cache Key:", cacheKey);
+
+    console.log("Query:", query);
 
     // CACHE READ
     try {
       const cached = await redisClient.get(cacheKey);
       if (cached) {
-        console.log("CACHE HIT ⚡");
+        console.log("CACHE HIT");
         return res.json(JSON.parse(cached));
       }
     } catch {}
 
-    console.log("CACHE MISS ❌");
+    console.log("CACHE MISS");
 
     const queryEmbedding = await generateEmbedding(query);
 
@@ -54,21 +60,29 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // calculate similarity
+    // similarity calculation
     const results = vectors.map((item) => {
       const score = cosineSimilarity(queryEmbedding, item.embedding);
       return { text: item.text, score };
     });
 
-    // sort by similarity
     results.sort((a, b) => b.score - a.score);
 
-    // 🔥 IMPORTANT FIXES
-    const topResults = results.slice(0, 6); // increase from 3 → 6
+    // better retrieval
+    const topResults = results.slice(0, 5);
 
     console.log("Top scores:", topResults.map(r => r.score.toFixed(3)));
 
-    // better context
+    // fallback if weak matches
+    if (topResults[0]?.score < 0.15) {
+      return res.json({
+        query,
+        answer: "I could not find relevant information in the document.",
+        contextUsed: [],
+      });
+    }
+
+    // clean context
     const context = topResults
       .map((r) => r.text)
       .join("\n\n");
@@ -80,13 +94,14 @@ router.post("/", authMiddleware, async (req, res) => {
     const response = {
       query,
       answer,
+      confidence: topResults[0].score, //
       contextUsed: topResults,
     };
 
     // CACHE STORE
     try {
       await redisClient.setEx(cacheKey, 600, JSON.stringify(response));
-      console.log("Stored in cache ✅");
+      console.log("Stored in cache");
     } catch {}
 
     res.json(response);

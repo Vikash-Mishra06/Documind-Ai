@@ -5,7 +5,6 @@ const fs = require("fs");
 const pdfParse = require("pdf-parse/lib/pdf-parse");
 const chunkText = require("../utils/chunkText");
 const { generateEmbedding } = require("../services/embeddingService");
-const { saveVectors } = require("../db/vectorStore");
 const authMiddleware = require("../middleware/authMiddleware");
 const Document = require("../models/Document");
 
@@ -27,37 +26,55 @@ const upload = multer({ storage });
 router.post("/", authMiddleware, upload.single("file"), async (req, res) => {
   try {
     const filePath = req.file.path;
-    console.log(`Processing file: ${req.file.originalname} for user: ${req.user.userId}`);
+
+    console.log(`📄 Processing: ${req.file.originalname}`);
+    console.log(`👤 User: ${req.user.userId}`);
 
     // read file
     const dataBuffer = fs.readFileSync(filePath);
 
     // extract text
     const pdfData = await pdfParse(dataBuffer);
-    const extractedText = pdfData.text.trim();
+    let extractedText = pdfData.text.trim();
 
-    if (!extractedText) {
-      throw new Error("No text extracted from PDF");
+    if (!extractedText || extractedText.length < 50) {
+      throw new Error("No meaningful text extracted from PDF");
     }
 
-    console.log(`Extracted ${extractedText.length} chars`);
+    console.log(`📝 Extracted text length: ${extractedText.length}`);
 
-    const chunks = chunkText(extractedText);
-    console.log(`Created ${chunks.length} chunks, avg length: ${chunks.reduce((a,b)=>a+b.length,0)/chunks.length |0}`);
+    // CLEAN TEXT (important)
+    extractedText = extractedText
+      .replace(/\n+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-    // Filter empty chunks
-    const validChunks = chunks.filter(chunk => chunk.trim().length > 10);
+    // SMART CHUNKING
+    const chunks = chunkText(extractedText, 300, 50);
+
+    console.log(`Created ${chunks.length} chunks`);
+
+    // filter valid chunks
+    const validChunks = chunks.filter((chunk) => chunk.length > 80);
 
     if (validChunks.length === 0) {
       throw new Error("No valid chunks after processing");
     }
 
-    // Generate embeddings ONCE and save
+    // 🔥 OPTIONAL: delete old docs of same file (clean UX)
+    await Document.deleteMany({
+      userId: req.user.userId,
+      fileName: req.file.originalname,
+    });
+
+    // generate embeddings and store
     const savedChunks = [];
+
     for (let i = 0; i < validChunks.length; i++) {
       const chunk = validChunks[i];
-      console.log(`Generating embedding ${i+1}/${validChunks.length}`);
-      
+
+      console.log(`⚡ Embedding ${i + 1}/${validChunks.length}`);
+
       const embedding = await generateEmbedding(chunk);
 
       const doc = await Document.create({
@@ -66,19 +83,24 @@ router.post("/", authMiddleware, upload.single("file"), async (req, res) => {
         text: chunk,
         embedding,
       });
+
       savedChunks.push(doc);
     }
 
-    console.log(`Successfully saved ${savedChunks.length} chunks to DB`);
+    console.log(`Stored ${savedChunks.length} chunks in DB`);
 
     res.json({
-      message: "Document processed and embeddings stored successfully",
+      message: "Document processed successfully",
       totalChunks: savedChunks.length,
-      fileName: req.file.originalname
+      fileName: req.file.originalname,
     });
+
   } catch (error) {
-    console.error("Upload error:", error);
-    res.status(500).json({ error: error.message || "Error processing PDF" });
+    console.error("Upload error:", error.message);
+
+    res.status(500).json({
+      error: error.message || "Error processing PDF",
+    });
   }
 });
 
