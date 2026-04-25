@@ -62,6 +62,10 @@ app.get("/", (req, res) => {
   res.send("DocuMind AI Backend Running 🚀");
 });
 
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 const PORT = process.env.PORT || 5000;
 
 connectDB();
