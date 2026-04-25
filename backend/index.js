@@ -62,7 +62,7 @@ app.get("/", (req, res) => {
   res.send("DocuMind AI Backend Running 🚀");
 });
 
-app.get("/health", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
