@@ -41,17 +41,20 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#09090b] relative overflow-hidden">
-      {/* Background Orbs for Depth */}
-      <div className="absolute top-[-15%] right-[-5%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-blue-600/10 rounded-full blur-[100px]" />
+<div className="min-h-screen flex items-center justify-center bg-[#09090b] relative overflow-hidden px-4 py-12">
+  
+  {/* Background Orbs */}
+  <div className="absolute top-[-15%] right-[-5%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px]" />
+  <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-blue-600/10 rounded-full blur-[100px]" />
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md p-8 bg-zinc-900/50 border border-zinc-800 rounded-3xl backdrop-blur-xl shadow-2xl relative z-10"
-      >
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    // 3. Changed 'p-8' to 'p-6 sm:p-8' so the card internal space is tighter on mobile
+    // 4. Added 'my-auto' to keep it centered when scrolling
+    className="w-full max-w-md p-6 sm:p-8 bg-zinc-900/50 border border-zinc-800 rounded-3xl backdrop-blur-xl shadow-2xl relative z-10 my-auto"
+  >
         <div className="flex flex-col items-center mb-8">
           <div className="bg-indigo-600 p-3 rounded-2xl mb-4 shadow-lg shadow-indigo-500/20">
             <UserPlus size={28} className="text-white" />
