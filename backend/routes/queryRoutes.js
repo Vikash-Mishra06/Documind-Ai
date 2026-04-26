@@ -7,37 +7,30 @@ const redisClient = require("../config/redis");
 
 const router = express.Router();
 
-// cosine similarity
 function cosineSimilarity(a, b) {
-  let dot = 0;
-  let magA = 0;
-  let magB = 0;
-
+  let dot = 0, magA = 0, magB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     magA += a[i] * a[i];
     magB += b[i] * b[i];
   }
-
   return dot / (Math.sqrt(magA) * Math.sqrt(magB));
 }
 
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const rawQuery = req.body.query;
+    const { query: rawQuery, fileName } = req.body;
 
-    // 🔥 smarter query rewrite
-    let query = rawQuery.trim().toLowerCase();
-    if (query.length < 20) {
-      query = `Explain clearly from the document: ${query}`;
+    if (!fileName) {
+      return res.status(400).json({ error: "fileName is required" });
     }
 
+    let query = rawQuery.trim().toLowerCase();
+
     const userId = req.user.userId;
-    const cacheKey = `${userId}:${query}`;
+    const cacheKey = `${userId}:${fileName}:${query}`;
 
-    console.log("Query:", query);
-
-    // CACHE READ
+    // CACHE
     try {
       const cached = await redisClient.get(cacheKey);
       if (cached) {
@@ -48,32 +41,45 @@ router.post("/", authMiddleware, async (req, res) => {
 
     console.log("CACHE MISS");
 
+    // HANDLE BROAD QUERIES
+    const broadQueries = ["all", "everything", "full", "summary"];
+    const isBroad = broadQueries.some(q => query.includes(q));
+
+    if (isBroad) {
+      const docs = await Document.find({ userId, fileName });
+
+      const context = docs.map(d => d.text).join("\n\n");
+
+      const answer = await generateAnswer(
+        "Summarize the entire document clearly without missing details",
+        context
+      );
+
+      return res.json({ query, answer, contextUsed: [] });
+    }
+
+    // NORMAL FLOW
     const queryEmbedding = await generateEmbedding(query);
 
-    const vectors = await Document.find({ userId });
+    const vectors = await Document.find({ userId, fileName });
 
     if (vectors.length === 0) {
       return res.json({
         query,
-        answer: "No documents uploaded yet.",
+        answer: "No document found.",
         contextUsed: [],
       });
     }
 
-    // similarity calculation
-    const results = vectors.map((item) => {
-      const score = cosineSimilarity(queryEmbedding, item.embedding);
-      return { text: item.text, score };
-    });
+    const results = vectors.map(item => ({
+      text: item.text,
+      score: cosineSimilarity(queryEmbedding, item.embedding),
+    }));
 
     results.sort((a, b) => b.score - a.score);
 
-    // better retrieval
     const topResults = results.slice(0, 5);
 
-    console.log("Top scores:", topResults.map(r => r.score.toFixed(3)));
-
-    // fallback if weak matches
     if (topResults[0]?.score < 0.15) {
       return res.json({
         query,
@@ -82,26 +88,19 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // clean context
-    const context = topResults
-      .map((r) => r.text)
-      .join("\n\n");
-
-    console.log("Context length:", context.length);
+    const context = topResults.map(r => r.text).join("\n\n");
 
     const answer = await generateAnswer(query, context);
 
     const response = {
       query,
       answer,
-      confidence: topResults[0].score, //
+      confidence: topResults[0].score,
       contextUsed: topResults,
     };
 
-    // CACHE STORE
     try {
       await redisClient.setEx(cacheKey, 600, JSON.stringify(response));
-      console.log("Stored in cache");
     } catch {}
 
     res.json(response);

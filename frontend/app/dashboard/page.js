@@ -2,14 +2,28 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { 
-  LayoutDashboard, FileText, MessageSquare, Menu, X,
-  LogOut, Upload, Send, Bot, User, 
-  Loader2, Plus, Sparkles, Trash2 
+import {
+  LayoutDashboard,
+  FileText,
+  MessageSquare,
+  Menu,
+  X,
+  LogOut,
+  Upload,
+  Send,
+  Bot,
+  User,
+  Loader2,
+  Plus,
+  Sparkles,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://documind-ai-klfw.onrender.com" || "http://localhost:5000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://documind-ai-klfw.onrender.com" ||
+  "http://localhost:5000";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -49,7 +63,9 @@ export default function Dashboard() {
       });
       const data = await res.json();
       setDocuments(data.documents || []);
-    } catch (err) { console.error("Fetch failed", err); }
+    } catch (err) {
+      console.error("Fetch failed", err);
+    }
   };
 
   const handleUpload = async (e) => {
@@ -73,19 +89,24 @@ export default function Dashboard() {
       const data = await res.json();
       fetchDocuments(token);
 
-      toast.success(`Document "${selectedFile.name}" uploaded! (${data.totalChunks || 0} chunks processed). Ask me anything about it.`, {
-        description: "Ready to query your new document.",
-      });
+      toast.success(
+        `Document "${selectedFile.name}" uploaded! (${data.totalChunks || 0} chunks processed). Ask me anything about it.`,
+        {
+          description: "Ready to query your new document.",
+        },
+      );
 
       // Auto-add welcome message to chat
-      setMessages(prev => [...prev, { 
-        role: "ai", 
-        text: `"${selectedFile.name}" Successfully uploaded and processed into ${data.totalChunks || 0} chunks. What would you like to know about it?` 
-      }]);
-
-    } catch (err) { 
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "ai",
+          text: `"${selectedFile.name}" Successfully uploaded and processed into ${data.totalChunks || 0} chunks. What would you like to know about it?`,
+        },
+      ]);
+    } catch (err) {
       toast.error("Upload failed: " + err.message);
-    } finally { 
+    } finally {
       setLoading(false);
       toast.dismiss();
     }
@@ -105,20 +126,33 @@ export default function Dashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({
+          query,
+          fileName: documents[0]?.fileName,
+        }),
       });
       const data = await res.json();
       if (!data.answer || data.answer.includes("not enough information")) {
-        setMessages([...newMessages, { 
-          role: "ai", 
-          text: data.answer || "No relevant information found. Try rephrasing or upload more documents." 
-        }]);
+        setMessages([
+          ...newMessages,
+          {
+            role: "ai",
+            text:
+              data.answer ||
+              "No relevant information found. Try rephrasing or upload more documents.",
+          },
+        ]);
       } else {
         setMessages([...newMessages, { role: "ai", text: data.answer }]);
       }
     } catch (err) {
-      setMessages([...newMessages, { role: "ai", text: "Server error. Try again later." }]);
-    } finally { setLoading(false); }
+      setMessages([
+        ...newMessages,
+        { role: "ai", text: "Server error. Try again later." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -126,10 +160,10 @@ export default function Dashboard() {
       {/* --- Mobile Sidebar Overlay --- */}
       <AnimatePresence>
         {isMobileSidebarOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={() => setIsMobileSidebarOpen(false)}
             className="fixed inset-0 z-30 lg:hidden bg-black/50 backdrop-blur-sm"
           />
@@ -137,7 +171,7 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* --- Mobile Sidebar --- */}
-      <motion.aside 
+      <motion.aside
         initial={false}
         animate={{ x: isMobileSidebarOpen ? 0 : "-100%" }}
         className="fixed top-0 left-0 z-40 w-72 sm:w-80 h-[100svh] border-r border-zinc-800 flex flex-col bg-[#09090b] shadow-2xl lg:hidden"
@@ -148,9 +182,11 @@ export default function Dashboard() {
             <div className="bg-indigo-600 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
               <Sparkles className="size-5 sm:size-[20px] text-white" />
             </div>
-            <span className="text-lg sm:text-xl font-bold tracking-tight truncate">DocuMind</span>
+            <span className="text-lg sm:text-xl font-bold tracking-tight truncate">
+              DocuMind
+            </span>
           </div>
-          <button 
+          <button
             onClick={() => setIsMobileSidebarOpen(false)}
             className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 transition-all flex-shrink-0 lg:hidden"
             aria-label="Close menu"
@@ -160,11 +196,22 @@ export default function Dashboard() {
         </div>
 
         <nav className="flex-1 px-3 sm:px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
-          <NavItem icon={<LayoutDashboard className="size-4 sm:size-4.5 flex-shrink-0" />} label="Overview" active />
-          <div className="pt-4 pb-2 px-3 sm:px-4 text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Documents</div>
+          <NavItem
+            icon={
+              <LayoutDashboard className="size-4 sm:size-4.5 flex-shrink-0" />
+            }
+            label="Overview"
+            active
+          />
+          <div className="pt-4 pb-2 px-3 sm:px-4 text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+            Documents
+          </div>
           <div className="space-y-1 max-h-[250px] overflow-y-auto custom-scrollbar px-1 sm:px-2">
             {documents.map((doc, i) => (
-              <div key={i} className="flex items-center gap-2 p-2 text-xs sm:text-sm text-zinc-400 hover:bg-zinc-800/50 rounded-lg group cursor-pointer">
+              <div
+                key={i}
+                className="flex items-center gap-2 p-2 text-xs sm:text-sm text-zinc-400 hover:bg-zinc-800/50 rounded-lg group cursor-pointer"
+              >
                 <FileText className="size-3.5 sm:size-3.5 flex-shrink-0" />
                 <span className="truncate">{doc.fileName}</span>
               </div>
@@ -173,11 +220,11 @@ export default function Dashboard() {
         </nav>
 
         <div className="p-3 sm:p-4 border-t border-zinc-800">
-          <button 
+          <button
             onClick={() => {
               handleLogout();
               setIsMobileSidebarOpen(false);
-            }} 
+            }}
             className="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 w-full text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all text-xs sm:text-sm"
           >
             <LogOut className="size-4 sm:size-4.5 flex-shrink-0" />
@@ -196,11 +243,20 @@ export default function Dashboard() {
         </div>
 
         <nav className="flex-1 px-4 space-y-2 mt-4">
-          <NavItem icon={<LayoutDashboard size={18}/>} label="Overview" active />
-          <div className="pt-4 pb-2 px-4 text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Documents</div>
+          <NavItem
+            icon={<LayoutDashboard size={18} />}
+            label="Overview"
+            active
+          />
+          <div className="pt-4 pb-2 px-4 text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+            Documents
+          </div>
           <div className="space-y-1 max-h-[300px] overflow-y-auto custom-scrollbar px-2">
             {documents.map((doc, i) => (
-              <div key={i} className="flex items-center gap-2 p-2 text-sm text-zinc-400 hover:bg-zinc-800/50 rounded-lg group cursor-pointer">
+              <div
+                key={i}
+                className="flex items-center gap-2 p-2 text-sm text-zinc-400 hover:bg-zinc-800/50 rounded-lg group cursor-pointer"
+              >
                 <FileText size={14} className="shrink-0" />
                 <span className="truncate">{doc.fileName}</span>
               </div>
@@ -209,7 +265,10 @@ export default function Dashboard() {
         </nav>
 
         <div className="p-4 border-t border-zinc-800">
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 w-full text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
+          >
             <LogOut size={18} />
             <span className="font-medium text-sm">Sign Out</span>
           </button>
@@ -221,29 +280,38 @@ export default function Dashboard() {
         {/* Top Header */}
         <header className="h-14 sm:h-16 border-b border-zinc-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-[#09090b]/50 backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsMobileSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100 transition-all flex-shrink-0"
             >
               <Menu className="size-5 sm:size-6" />
             </button>
             <h2 className="hidden sm:block text-sm font-medium text-zinc-400 truncate max-w-[200px] sm:max-w-[300px]">
-              Knowledge Base / <span className="text-zinc-100">AI Assistant</span>
+              Knowledge Base /{" "}
+              <span className="text-zinc-100">AI Assistant</span>
             </h2>
-            <span className="sm:hidden text-xs font-semibold text-zinc-300">AI Chat</span>
+            <span className="sm:hidden text-xs font-semibold text-zinc-300">
+              AI Chat
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <label className="cursor-pointer flex items-center gap-1.5 bg-zinc-100 text-black px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-300 transition-colors">
               <Plus className="size-3.5 sm:size-3.5 flex-shrink-0" />
               {loading ? "Proc..." : "New Doc"}
-              <input type="file" className="hidden" onChange={handleUpload} disabled={loading} accept=".pdf" />
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleUpload}
+                disabled={loading}
+                accept=".pdf"
+              />
             </label>
           </div>
         </header>
 
         {/* Chat Window */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 custom-scrollbar">
-{messages.length === 0 ? (
+          {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
               <div className="w-20 h-20 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-2xl flex items-center justify-center border-2 border-indigo-500/30 shadow-2xl">
                 <FileText className="w-10 h-10 text-indigo-400" />
@@ -253,7 +321,8 @@ export default function Dashboard() {
                   Get Started with DocuMind
                 </h2>
                 <p className="text-zinc-400 text-sm max-w-md mx-auto leading-relaxed">
-                  Upload your first PDF document and unlock AI-powered insights using RAG technology.
+                  Upload your first PDF document and unlock AI-powered insights
+                  using RAG technology.
                 </p>
               </div>
               <label className="group relative cursor-pointer">
@@ -262,12 +331,12 @@ export default function Dashboard() {
                   <span>Upload PDF Document</span>
                   <div className="ml-2 w-5 h-5 bg-white/20 rounded-full group-hover:bg-white/30 animate-pulse"></div>
                 </div>
-                <input 
-                  type="file" 
-                  className="hidden" 
+                <input
+                  type="file"
+                  className="hidden"
                   accept=".pdf"
-                  onChange={handleUpload} 
-                  disabled={loading} 
+                  onChange={handleUpload}
+                  disabled={loading}
                 />
               </label>
               <p className="text-xs text-zinc-500 max-w-sm mx-auto">
@@ -277,25 +346,41 @@ export default function Dashboard() {
           ) : (
             <div className="max-w-3xl mx-auto space-y-6">
               {messages.map((msg, i) => (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  key={i} className={`flex gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={i}
+                  className={`flex gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  {msg.role === "ai" && <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20"><Bot size={16} /></div>}
-                  <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${
-                    msg.role === "user" 
-                    ? "bg-indigo-600 text-white rounded-tr-none" 
-                    : "bg-zinc-800/50 border border-zinc-700/50 text-zinc-200 rounded-tl-none"
-                  }`}>
+                  {msg.role === "ai" && (
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
+                      <Bot size={16} />
+                    </div>
+                  )}
+                  <div
+                    className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-indigo-600 text-white rounded-tr-none"
+                        : "bg-zinc-800/50 border border-zinc-700/50 text-zinc-200 rounded-tl-none"
+                    }`}
+                  >
                     {msg.text}
                   </div>
-                  {msg.role === "user" && <div className="w-8 h-8 rounded-lg bg-zinc-700 flex items-center justify-center shrink-0"><User size={16} /></div>}
+                  {msg.role === "user" && (
+                    <div className="w-8 h-8 rounded-lg bg-zinc-700 flex items-center justify-center shrink-0">
+                      <User size={16} />
+                    </div>
+                  )}
                 </motion.div>
               ))}
               {loading && (
                 <div className="flex gap-4 items-center animate-pulse">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center"><Loader2 size={16} className="animate-spin" /></div>
-                  <div className="text-xs text-zinc-500 font-medium">DocuMind is thinking...</div>
+                  <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <Loader2 size={16} className="animate-spin" />
+                  </div>
+                  <div className="text-xs text-zinc-500 font-medium">
+                    DocuMind is thinking...
+                  </div>
                 </div>
               )}
               <div ref={chatEndRef} />
@@ -328,9 +413,13 @@ export default function Dashboard() {
 
 function NavItem({ icon, label, active = false }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
-      active ? "bg-indigo-600/10 text-indigo-500" : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100"
-    }`}>
+    <div
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
+        active
+          ? "bg-indigo-600/10 text-indigo-500"
+          : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100"
+      }`}
+    >
       {icon}
       <span className="font-medium text-sm">{label}</span>
     </div>

@@ -10,32 +10,21 @@ async function generateAnswer(query, context) {
           {
             role: "system",
             content: `
-You are an AI assistant that answers questions from uploaded documents.
+You are an AI assistant.
 
-IMPORTANT RULES:
-- Use ONLY the provided context
-- The document may be any type (resume, company policy, technical doc, etc.)
-- Extract ONLY relevant information
-- DO NOT mix unrelated sections
-- DO NOT add extra explanation or assumptions
-- If answer is partially available, answer only what is present
-- If no relevant info exists, say: "I could not find relevant information in the document."
+RULES:
+- Use ONLY given context
+- DO NOT add extra explanation
+- DO NOT hallucinate
+- DO NOT use symbols like #, **, markdown
+- Keep output clean plain text
 
-STRUCTURE RULES:
-- If multiple topics → separate clearly with headings
-- If listing → use bullet points
-- Keep answers short, precise, and clean
-- Do NOT repeat the question
-- Do NOT explain irrelevant sections
+FORMAT:
+- Use simple bullet points with "-"
+- Keep answers short and accurate
 
-EXAMPLE STYLE:
-Leave Policy:
-- 20 paid leaves per year
-- Sick leave: up to 2 days without approval
-
-Remote Work Policy:
-- Up to 3 days per week allowed
-- Full-time remote requires approval
+If no info → say:
+"I could not find relevant information in the document."
             `,
           },
           {
@@ -49,8 +38,8 @@ ${query}
             `,
           },
         ],
-        temperature: 0.1, // 🔥 more precise
-        max_tokens: 350,
+        temperature: 0.1,
+        max_tokens: 300,
       },
       {
         headers: {
