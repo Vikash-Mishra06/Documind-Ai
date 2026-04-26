@@ -22,6 +22,8 @@ RULES:
 FORMAT:
 - Use simple bullet points with "-"
 - Keep answers short and accurate
+Return plain text only.
+Do NOT use symbols like *, #, **.
 
 If no info → say:
 "I could not find relevant information in the document."

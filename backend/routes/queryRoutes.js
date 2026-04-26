@@ -8,7 +8,9 @@ const redisClient = require("../config/redis");
 const router = express.Router();
 
 function cosineSimilarity(a, b) {
-  let dot = 0, magA = 0, magB = 0;
+  let dot = 0,
+    magA = 0,
+    magB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     magA += a[i] * a[i];
@@ -27,6 +29,27 @@ router.post("/", authMiddleware, async (req, res) => {
 
     let query = rawQuery.trim().toLowerCase();
 
+    const broadQueries = ["all", "everything", "full", "summary"];
+
+    const isBroad = broadQueries.some((q) => query.includes(q));
+
+    if (isBroad) {
+      const docs = await Document.find({ userId, fileName });
+
+      const context = docs.map((d) => d.text).join("\n\n");
+
+      const answer = await generateAnswer(
+        "Summarize this document clearly. Do NOT add anything outside context.",
+        context,
+      );
+
+      return res.json({
+        query,
+        answer,
+        contextUsed: [],
+      });
+    }
+
     const userId = req.user.userId;
     const cacheKey = `${userId}:${fileName}:${query}`;
 
@@ -43,16 +66,16 @@ router.post("/", authMiddleware, async (req, res) => {
 
     // HANDLE BROAD QUERIES
     const broadQueries = ["all", "everything", "full", "summary"];
-    const isBroad = broadQueries.some(q => query.includes(q));
+    const isBroad = broadQueries.some((q) => query.includes(q));
 
     if (isBroad) {
       const docs = await Document.find({ userId, fileName });
 
-      const context = docs.map(d => d.text).join("\n\n");
+      const context = docs.map((d) => d.text).join("\n\n");
 
       const answer = await generateAnswer(
         "Summarize the entire document clearly without missing details",
-        context
+        context,
       );
 
       return res.json({ query, answer, contextUsed: [] });
@@ -71,7 +94,7 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    const results = vectors.map(item => ({
+    const results = vectors.map((item) => ({
       text: item.text,
       score: cosineSimilarity(queryEmbedding, item.embedding),
     }));
@@ -88,7 +111,7 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    const context = topResults.map(r => r.text).join("\n\n");
+    const context = topResults.map((r) => r.text).join("\n\n");
 
     const answer = await generateAnswer(query, context);
 
@@ -104,7 +127,6 @@ router.post("/", authMiddleware, async (req, res) => {
     } catch {}
 
     res.json(response);
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Search failed" });
